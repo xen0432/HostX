@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>HostX</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0a;
+            color: #d0d0d0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            font-family: 'VT323', monospace;
+            position: relative;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 60%),
+                radial-gradient(circle at 80% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image: linear-gradient(rgba(255, 215, 0, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 215, 0, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: repeating-linear-gradient(0deg,
+                    rgba(0, 0, 0, 0) 0px,
+                    rgba(0, 0, 0, 0) 2px,
+                    rgba(0, 0, 0, 0.2) 2px,
+                    rgba(0, 0, 0, 0.2) 4px);
+        }
+        .container {
+            max-width: 480px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            background: #111111;
+            border: 1px solid #3a3a00;
+            border-radius: 12px;
+            padding: 24px 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.03);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #3a3a00;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 28px;
+            color: #ffd700;
+            letter-spacing: 4px;
+            text-shadow: 0 0 40px rgba(255, 215, 0, 0.1);
+        }
+        .header h1 .highlight {
+            color: #888888;
+        }
+        .header .line {
+            width: 60px;
+            height: 1px;
+            background: #ffd700;
+            margin: 10px auto 0;
+            animation: pulse-line 2s infinite;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+        @keyframes pulse-line {
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            color: #ffd700;
+            letter-spacing: 2px;
+            display: block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            background: #0a0a0a;
+            border: 1px solid #3a3a00;
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #d0d0d0;
+            font-size: 13px;
+            font-family: 'VT323', monospace;
+            outline: none;
+            transition: border 0.3s;
+            resize: vertical;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.05);
+        }
+        .form-group textarea {
+            min-height: 100px;
+            font-size: 12px;
+        }
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #2a2a2a;
+        }
+        .form-group select option {
+            background: #111111;
+            color: #d0d0d0;
+        }
+        .btn {
+            width: 100%;
+            background: #1a1a00;
+            border: 1px solid #ffd700;
+            border-radius: 6px;
+            padding: 12px;
+            color: #ffd700;
+            font-family: 'Orbitron', monospace;
+            font-size: 13px;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 4px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+        }
+        .btn:hover {
+            background: #2a2a00;
+            border-color: #ffd700;
+            color: #ffffff;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.1);
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: transparent;
+            border-color: #3a3a00;
+            color: #666666;
+        }
+        .btn-secondary:hover {
+            background: transparent;
+            border-color: #ffd700;
+            color: #ffd700;
+            box-shadow: none;
+        }
+        .result-box {
+            background: #0a0a0a;
+            border: 1px solid #3a3a00;
+            border-radius: 6px;
+            padding: 14px;
+            margin-top: 16px;
+            min-height: 60px;
+            display: none;
+        }
+        .result-box.show {
+            display: block;
+        }
+        .result-box .item {
+            padding: 4px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 1px solid #1a1a00;
+            font-size: 13px;
+        }
+        .result-box .item:last-child {
+            border-bottom: none;
+        }
+        .result-box .item .key {
+            color: #888844;
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .result-box .item .val {
+            color: #d0d0d0;
+            word-break: break-all;
+            text-align: right;
+            font-family: 'VT323', monospace;
+        }
+        .result-box .item .val a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+        .result-box .item .val a:hover {
+            color: #ffffff;
+        }
+        .result-box .item .val.green {
+            color: #88aa88;
+        }
+        .result-box .item .val.red {
+            color: #aa8888;
+        }
+        .loading-state {
+            text-align: center;
+            padding: 20px 0;
+            color: #3a3a00;
+        }
+        .loading-state .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #ffd700;
+            border-radius: 50%;
+            margin: 0 4px;
+            animation: dot-bounce 1.2s infinite;
+        }
+        .loading-state .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .loading-state .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes dot-bounce {
+            0%,
+            80%,
+            100% {
+                transform: scale(0.4);
+                opacity: 0.3;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .loading-state .text {
+            font-size: 11px;
+            letter-spacing: 3px;
+            margin-top: 8px;
+            font-family: 'Orbitron', monospace;
+            color: #ffd700;
+        }
+        .status-msg {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 12px;
+            letter-spacing: 1px;
+            font-family: 'Orbitron', monospace;
+        }
+        .status-msg.success {
+            color: #ffd700;
+        }
+        .status-msg.error {
+            color: #aa4444;
+        }
+        .status-msg.info {
+            color: #888844;
+        }
+        .token-help {
+            font-size: 11px;
+            color: #666644;
+            margin-top: 4px;
+            font-family: 'VT323', monospace;
+        }
+        .token-help a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+        .token-help a:hover {
+            text-decoration: underline;
+        }
+        .mode-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .mode-selector .mode-btn {
+            flex: 1;
+            background: #0a0a0a;
+            border: 1px solid #3a3a00;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            color: #666644;
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mode-selector .mode-btn:hover {
+            border-color: #666644;
+            color: #ffd700;
+        }
+        .mode-selector .mode-btn.active {
+            border-color: #ffd700;
+            color: #ffd700;
+            background: #1a1a00;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.05);
+        }
+        .file-upload-area {
+            border: 2px dashed #3a3a00;
+            border-radius: 6px;
+            padding: 30px 20px;
+            text-align: center;
+            color: #444422;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'VT323', monospace;
+        }
+        .file-upload-area:hover {
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+        .file-upload-area.dragover {
+            border-color: #ffd700;
+            background: #1a1a00;
+        }
+        .file-upload-area input[type="file"] {
+            display: none;
+        }
+        .file-name {
+            color: #ffd700;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        .hidden {
+            display: none !important;
+        }
+        @media (max-width: 400px) {
+            .container {
+                padding: 16px 14px;
+            }
+            .header h1 {
+                font-size: 22px;
+                letter-spacing: 2px;
+            }
+            .btn {
+                font-size: 11px;
+                padding: 10px;
+            }
+            .mode-selector .mode-btn {
+                font-size: 9px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-overlay"></div>
+    <div class="scanlines"></div>
+    <div class="container">
+        <div class="header">
+            <h1>HOST<span class="highlight">X</span></h1>
+            <div class="line"></div>
+        </div>
+
+        <!-- Step 1: Verifikasi Token -->
+        <div class="step active" id="stepToken">
+            <div class="form-group">
+                <label>Vercel Token</label>
+                <input type="password" id="vercelToken" placeholder="vcp_xxxxxxxxxxxxxxxx" required>
+                <div class="token-help">
+                    Cara mendapatkan token: 
+                    <a href="https://vercel.com/account/tokens" target="_blank">vercel.com/account/tokens</a>
+                    → Create Token → Copy
+                </div>
+            </div>
+            <button class="btn" id="verifyBtn">VERIFY TOKEN</button>
+            <div id="tokenStatus" class="status-msg"></div>
+        </div>
+
+        <!-- Step 2: Deploy -->
+        <div class="step" id="stepDeploy">
+            <div class="form-group">
+                <label>Project Name</label>
+                <input type="text" id="projectName" placeholder="my-project">
+            </div>
+
+            <div class="mode-selector">
+                <div class="mode-btn active" data-mode="html">HTML</div>
+                <div class="mode-btn" data-mode="folder">FOLDER</div>
+            </div>
+
+            <!-- Mode HTML -->
+            <div id="htmlMode">
+                <div class="form-group">
+                    <label>HTML Content</label>
+                    <textarea id="htmlContent" placeholder="<!DOCTYPE html><html><body><h1>Hello World</h1></body></html>"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Or Upload HTML File</label>
+                    <div class="file-upload-area" id="htmlUploadArea">
+                        <span>Click or drag HTML file here</span>
+                        <input type="file" id="htmlFileInput" accept=".html,.htm">
+                        <div class="file-name" id="htmlFileName"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mode Folder -->
+            <div id="folderMode" class="hidden">
+                <div class="form-group">
+                    <label>Upload Project Folder (ZIP)</label>
+                    <div class="file-upload-area" id="folderUploadArea">
+                        <span>Click or drag ZIP file here</span>
+                        <input type="file" id="folderFileInput" accept=".zip">
+                        <div class="file-name" id="folderFileName"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Framework (optional)</label>
+                    <input type="text" id="framework" placeholder="nextjs / react / vue">
+                </div>
+                <div class="form-group">
+                    <label>Build Command (optional)</label>
+                    <input type="text" id="buildCmd" placeholder="npm run build">
+                </div>
+                <div class="form-group">
+                    <label>Output Directory (optional)</label>
+                    <input type="text" id="outputDir" placeholder="dist / build / .next">
+                </div>
+            </div>
+
+            <button class="btn" id="deployBtn">DEPLOY</button>
+            <button class="btn btn-secondary" id="logoutBtn">CHANGE TOKEN</button>
+
+            <div class="result-box" id="resultBox">
+                <div id="resultContent"></div>
+            </div>
+
+            <div id="deployStatus" class="status-msg"></div>
+        </div>
+    </div>
+
+    <script>
+        let vercelToken = '';
+        let selectedMode = 'html';
+        let htmlFileContent = null;
+        let zipFileContent = null;
+
+        // Mode selector
+        document.querySelectorAll('.mode-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.mode-btn').forEach(function(b) {
+                    b.classList.remove('active');
+                });
+                this.classList.add('active');
+                selectedMode = this.dataset.mode;
+
+                if (selectedMode === 'html') {
+                    document.getElementById('htmlMode').classList.remove('hidden');
+                    document.getElementById('folderMode').classList.add('hidden');
+                } else {
+                    document.getElementById('htmlMode').classList.add('hidden');
+                    document.getElementById('folderMode').classList.remove('hidden');
+                }
+            });
+        });
+
+        // HTML file upload
+        const htmlUploadArea = document.getElementById('htmlUploadArea');
+        const htmlFileInput = document.getElementById('htmlFileInput');
+        const htmlFileName = document.getElementById('htmlFileName');
+
+        htmlUploadArea.addEventListener('click', function() {
+            htmlFileInput.click();
+        });
+
+        htmlUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        htmlUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        htmlUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleHtmlFile(files[0]);
+            }
+        });
+
+        htmlFileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                handleHtmlFile(this.files[0]);
+            }
+        });
+
+        function handleHtmlFile(file) {
+            if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+                htmlFileName.textContent = 'File: ' + file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    htmlFileContent = e.target.result;
+                    document.getElementById('htmlContent').value = htmlFileContent;
+                };
+                reader.readAsText(file);
+            } else {
+                alert('Please upload an HTML file');
+            }
+        }
+
+        // Folder ZIP upload
+        const folderUploadArea = document.getElementById('folderUploadArea');
+        const folderFileInput = document.getElementById('folderFileInput');
+        const folderFileName = document.getElementById('folderFileName');
+
+        folderUploadArea.addEventListener('click', function() {
+            folderFileInput.click();
+        });
+
+        folderUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        folderUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        folderUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFolderFile(files[0]);
+            }
+        });
+
+        folderFileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                handleFolderFile(this.files[0]);
+            }
+        });
+
+        function handleFolderFile(file) {
+            if (file.name.endsWith('.zip')) {
+                folderFileName.textContent = 'File: ' + file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    zipFileContent = e.target.result;
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert('Please upload a ZIP file');
+            }
+        }
+
+        // Verify Token
+        document.getElementById('verifyBtn').addEventListener('click', function() {
+            const token = document.getElementById('vercelToken').value.trim();
+            const status = document.getElementById('tokenStatus');
+
+            if (!token || !token.startsWith('vcp_')) {
+                status.textContent = 'Invalid token format. Token should start with "vcp_"';
+                status.className = 'status-msg error';
+                return;
+            }
+
+            status.textContent = 'Verifying...';
+            status.className = 'status-msg info';
+
+            fetch('https://api.vercel.com/v2/user', {
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(function(res) {
+                if (res.ok) {
+                    return res.json();
+                } else {
+                    throw new Error('Invalid token');
+                }
+            })
+            .then(function(data) {
+                vercelToken = token;
+                status.textContent = 'Verified! Welcome ' + (data.username || 'User');
+                status.className = 'status-msg success';
+
+                document.getElementById('stepToken').classList.remove('active');
+                document.getElementById('stepDeploy').classList.add('active');
+
+                document.getElementById('projectName').value = data.username + '-deploy';
+            })
+            .catch(function(err) {
+                status.textContent = 'Verification failed: ' + err.message;
+                status.className = 'status-msg error';
+            });
+        });
+
+        // Enter key for token
+        document.getElementById('vercelToken').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('verifyBtn').click();
+            }
+        });
+
+        // Logout / Change Token
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            vercelToken = '';
+            document.getElementById('stepDeploy').classList.remove('active');
+            document.getElementById('stepToken').classList.add('active');
+            document.getElementById('vercelToken').value = '';
+            document.getElementById('tokenStatus').textContent = '';
+            document.getElementById('tokenStatus').className = 'status-msg';
+            document.getElementById('resultBox').classList.remove('show');
+            document.getElementById('deployStatus').textContent = '';
+            document.getElementById('deployStatus').className = 'status-msg';
+        });
+
+        // Deploy
+        document.getElementById('deployBtn').addEventListener('click', function() {
+            const deployBtn = this;
+            const resultBox = document.getElementById('resultBox');
+            const resultContent = document.getElementById('resultContent');
+            const statusMsg = document.getElementById('deployStatus');
+
+            const projectName = document.getElementById('projectName').value.trim() || 'hostx-deploy';
+
+            if (!vercelToken) {
+                statusMsg.textContent = 'Token not verified. Please restart.';
+                statusMsg.className = 'status-msg error';
+                return;
+            }
+
+            let deployData = {
+                name: projectName,
+                token: vercelToken
+            };
+
+            if (selectedMode === 'html') {
+                let html = document.getElementById('htmlContent').value.trim();
+                if (htmlFileContent) {
+                    html = htmlFileContent;
+                }
+                if (!html) {
+                    statusMsg.textContent = 'Please enter HTML content or upload an HTML file';
+                    statusMsg.className = 'status-msg error';
+                    return;
+                }
+                deployData.type = 'html';
+                deployData.html = html;
+            } else {
+                if (!zipFileContent) {
+                    statusMsg.textContent = 'Please upload a ZIP file of your project';
+                    statusMsg.className = 'status-msg error';
+                    return;
+                }
+                deployData.type = 'folder';
+                deployData.zip = btoa(String.fromCharCode.apply(null, new Uint8Array(zipFileContent)));
+                deployData.framework = document.getElementById('framework').value.trim() || null;
+                deployData.buildCommand = document.getElementById('buildCmd').value.trim() || null;
+                deployData.outputDirectory = document.getElementById('outputDir').value.trim() || null;
+            }
+
+            deployBtn.disabled = true;
+            deployBtn.textContent = 'DEPLOYING...';
+            resultBox.classList.remove('show');
+            statusMsg.textContent = '';
+            statusMsg.className = 'status-msg';
+
+            resultContent.innerHTML = `
+                <div class="loading-state">
+                    <div><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                    <div class="text">DEPLOYING TO VERCEL</div>
+                </div>
+            `;
+            resultBox.classList.add('show');
+
+            fetch('/api/deploy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(deployData)
+            })
+            .then(function(res) {
+                return res.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    resultContent.innerHTML = `
+                        <div class="item"><span class="key">STATUS</span><span class="val green">SUCCESS</span></div>
+                        <div class="item"><span class="key">PROJECT</span><span class="val">${data.project || projectName}</span></div>
+                        ${data.url ? `<div class="item"><span class="key">URL</span><span class="val"><a href="${data.url}" target="_blank">${data.url}</a></span></div>` : ''}
+                        ${data.deploymentId ? `<div class="item"><span class="key">DEPLOYMENT ID</span><span class="val">${data.deploymentId}</span></div>` : ''}
+                    `;
+                    statusMsg.textContent = 'Deployment successful!';
+                    statusMsg.className = 'status-msg success';
+                } else {
+                    resultContent.innerHTML = `
+                        <div class="item"><span class="key">STATUS</span><span class="val red">FAILED</span></div>
+                        <div class="item"><span class="key">ERROR</span><span class="val red">${data.error || 'Unknown error'}</span></div>
+                    `;
+                    statusMsg.textContent = 'Deployment failed';
+                    statusMsg.className = 'status-msg error';
+                }
+            })
+            .catch(function(err) {
+                resultContent.innerHTML = `
+                    <div class="item"><span class="key">STATUS</span><span class="val red">ERROR</span></div>
+                    <div class="item"><span class="key">MESSAGE</span><span class="val red">${err.message}</span></div>
+                `;
+                statusMsg.textContent = 'Connection error';
+                statusMsg.className = 'status-msg error';
+            })
+            .finally(function() {
+                deployBtn.disabled = false;
+                deployBtn.textContent = 'DEPLOY';
+            });
+        });
+    </script>
+</body>
+</html>
